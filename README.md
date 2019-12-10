@@ -19,6 +19,10 @@
 Welcome to _Quaerite_
 =================================================
 
+NOTE
+--------------------
+This is the active fork from the original project started at [MITRE](https://github.com/mitre/quaerite).
+
 Background and Goals
 --------------------
 
