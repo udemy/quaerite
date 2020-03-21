@@ -16,6 +16,8 @@
  */
 package org.tallison.quaerite.core.scorers;
 
+import java.util.List;
+
 import org.tallison.quaerite.core.Judgments;
 import org.tallison.quaerite.core.SearchResultSet;
 
@@ -29,8 +31,9 @@ public class CumulativeGain extends AbstractJudgmentScorer {
     public double score(Judgments judgments, SearchResultSet searchResultSet) {
 
         double sum = 0.0;
+        List<String> ids = searchResultSet.getIds();
         for (int i = 0; i < getAtN() && i < searchResultSet.size(); i++) {
-            String id = searchResultSet.get(i);
+            String id = ids.get(i);
             if (judgments.containsJudgment(id)) {
                 sum += judgments.getJudgment(id);
             }

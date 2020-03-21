@@ -45,6 +45,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.tallison.quaerite.core.FacetResult;
 import org.tallison.quaerite.core.SearchResultSet;
+import org.tallison.quaerite.core.StoredDocument;
 import org.tallison.quaerite.core.features.CustomHandler;
 import org.tallison.quaerite.core.features.ParameterizableString;
 import org.tallison.quaerite.core.features.QF;
@@ -107,21 +108,20 @@ public class SolrClient extends SearchClient {
         return translateResponse(elapsed, response.getJson());
     }
 
-
-    private SearchResultSet translateResponse(long totalTime, JsonElement root) throws IOException {
+    private SearchResultSet translateResponse(long totalTime, JsonElement root)
+            throws IOException, SearchClientException {
         //TODO: figure out what queryTime means/is as diff from total
         long queryTime = 0;
         List<String> ids = new ArrayList();
         JsonObject response = (JsonObject) ((JsonObject) root).get("response");
         long totalHits = response.get("numFound").getAsLong();
+        List<StoredDocument> documents = null;
         if (response.has("docs")) {
-            JsonArray docs = (JsonArray) response.get("docs");
-            for (JsonElement docElement : docs) {
-                String id = ((JsonObject) docElement).get("id").getAsString();
-                ids.add(id);
-            }
+            documents = jsonArrayToDocs((JsonArray) response.get("docs"), Collections.EMPTY_SET);
+        } else {
+            documents = Collections.EMPTY_LIST;
         }
-        return new SearchResultSet(totalHits, queryTime, totalTime, ids);
+        return new SearchResultSet(totalHits, queryTime, totalTime, documents);
     }
 
     String generateRequestURL(QueryRequest queryRequest) {
@@ -346,8 +346,11 @@ public class SolrClient extends SearchClient {
     @Override
     public void addDocuments(List<StoredDocument> buildDocuments) throws IOException, SearchClientException {
         List<Map<String, Object>> data = new ArrayList<>();
+        String idField = getDefaultIdField();
         for (StoredDocument d : buildDocuments) {
-            data.add(d.getFields());
+            Map<String, Object> doc = d.getFields();
+            doc.put(idField, d.getId());
+            data.add(doc);
         }
         String json = GSON.toJson(data);
         JsonResponse response = postJson(url +
@@ -386,29 +389,41 @@ public class SolrClient extends SearchClient {
             LOG.warn("problem with " + url + " and " + json);
             return Collections.EMPTY_LIST;
         }
-        List<StoredDocument> documents = new ArrayList<>();
+        List<StoredDocument> documents = null;
         JsonElement root = fullResponse.getJson();
         JsonObject response = (JsonObject) ((JsonObject) root).get("response");
         long totalHits = response.get("numFound").getAsLong();
         if (response.has("docs")) {
-            JsonArray docs = (JsonArray) response.get("docs");
-            for (JsonElement docElement : docs) {
-                StoredDocument document = new StoredDocument();
-                JsonObject docObj = (JsonObject) docElement;
-                for (String key : docObj.keySet()) {
-                    if (!blackListFields.contains(key)) {
-                        JsonElement value = docObj.get(key);
-                        if (value.isJsonArray()) {
-                            for (int j = 0; j < ((JsonArray) value).size(); j++) {
-                                document.addNonBlankField(key, ((JsonArray) value).get(j).getAsString());
-                            }
-                        } else {
-                            document.addNonBlankField(key, value.getAsString());
+            documents = jsonArrayToDocs((JsonArray) response.get("docs"), blackListFields);
+        } else {
+            documents = Collections.emptyList();
+        }
+        return documents;
+    }
+
+    private List<StoredDocument> jsonArrayToDocs(JsonArray docs,
+                                                 Set<String> blackListFields)
+            throws IOException, SearchClientException {
+        List<StoredDocument> documents = new ArrayList<>();
+        String idKey = getDefaultIdField();
+        for (JsonElement docElement : docs) {
+            JsonObject docObj = (JsonObject) docElement;
+            String id = docObj.get(idKey).getAsString();
+
+            StoredDocument document = new StoredDocument(id);
+            for (String key : docObj.keySet()) {
+                if (!blackListFields.contains(key) && ! key.equals(idKey)) {
+                    JsonElement value = docObj.get(key);
+                    if (value.isJsonArray()) {
+                        for (int j = 0; j < ((JsonArray) value).size(); j++) {
+                            document.addNonBlankField(key, ((JsonArray) value).get(j).getAsString());
                         }
+                    } else {
+                        document.addNonBlankField(key , value.getAsString());
                     }
                 }
-                documents.add(document);
             }
+            documents.add(document);
         }
         return documents;
     }
@@ -550,10 +565,12 @@ public class SolrClient extends SearchClient {
                 QueryRequest queryRequest =
                         buildQueryRequest(idField, start, idSize, filterQueries);
                 SearchResultSet rs = search(queryRequest);
+
                 while (rs.size() > 0) {
                     Set<String> set = new HashSet<>();
-                    for (int i = 0; i < rs.size(); i++) {
-                        set.add(rs.get(i));
+                    List<String> ids = rs.getIds();
+                    for (int i = 0; i < ids.size(); i++) {
+                        set.add(ids.get(i));
                         if (set.size() > batchSize) {
                             totalAdded += addSet(set);
                             set = new HashSet<>();

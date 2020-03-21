@@ -36,6 +36,7 @@ import org.junit.jupiter.api.Test;
 import org.tallison.quaerite.core.FacetResult;
 import org.tallison.quaerite.core.QueryStrings;
 import org.tallison.quaerite.core.SearchResultSet;
+import org.tallison.quaerite.core.StoredDocument;
 import org.tallison.quaerite.core.features.MultiMatchType;
 import org.tallison.quaerite.core.features.QF;
 import org.tallison.quaerite.core.features.QueryOperator;
@@ -126,7 +127,7 @@ public class TestESClient {
         SearchResultSet result = client.search(queryRequest);
         Set<String> hits = new HashSet<>();
         for (int i = 0; i < result.size(); i++) {
-            hits.add(result.get(i));
+            hits.add(result.getId(i));
         }
         assertEquals(8, hits.size());
         assertTrue(hits.contains("539"));
@@ -140,7 +141,7 @@ public class TestESClient {
         result = client.search(queryRequest);
         hits = new HashSet<>();
         for (int i = 0; i < result.size(); i++) {
-            hits.add(result.get(i));
+            hits.add(result.getId(i));
         }
         assertEquals(8, hits.size());
         assertTrue(hits.contains("539"));
@@ -165,7 +166,7 @@ public class TestESClient {
         SearchResultSet result = client.search(queryRequest);
         Set<String> hits = new HashSet<>();
         for (int i = 0; i < result.size(); i++) {
-            hits.add(result.get(i));
+            hits.add(result.getId(i));
         }
         assertEquals(7, hits.size());
         assertTrue(hits.contains("35683"));
@@ -197,7 +198,7 @@ public class TestESClient {
         SearchResultSet result = client.search(queryRequest);
         Set<String> hits = new HashSet<>();
         for (int i = 0; i < result.size(); i++) {
-            hits.add(result.get(i));
+            hits.add(result.getId(i));
         }
         assertEquals(176, hits.size());
         assertTrue(hits.contains("81579"));

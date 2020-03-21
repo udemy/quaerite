@@ -16,6 +16,7 @@
  */
 package org.tallison.quaerite.core.scorers;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -92,8 +93,9 @@ public class ExpectedReciprocalRank extends AbstractJudgmentScorer {
         double twoToTheMax = FastMath.pow(2, max);
         double p = 1.0;
         double err = 0.0;
-        for (int i = 0; i < getAtN() && i < searchResultSet.size(); i++) {
-            String id = searchResultSet.get(i);
+        List<String> ids = searchResultSet.getIds();
+        for (int i = 0; i < getAtN() && i < ids.size(); i++) {
+            String id = ids.get(i);
             double grade = getGrade(judgments, id, max);
             if (grade <= 0.0) {
                 continue;

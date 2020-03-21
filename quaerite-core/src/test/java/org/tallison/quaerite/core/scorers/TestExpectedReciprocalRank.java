@@ -19,6 +19,7 @@ package org.tallison.quaerite.core.scorers;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -29,6 +30,7 @@ import org.tallison.quaerite.core.Judgments;
 import org.tallison.quaerite.core.QueryInfo;
 import org.tallison.quaerite.core.QueryStrings;
 import org.tallison.quaerite.core.SearchResultSet;
+import org.tallison.quaerite.core.StoredDocument;
 
 /**
  * These tests were copied from Max Irwin's tests in
@@ -44,7 +46,13 @@ public class TestExpectedReciprocalRank {
     static {
         List<String> ids = Arrays.asList(
                 ("1 2 3 4 5 6 7 8 9 10 11 12 13 14 15").split("\\s+"));
-        RESULTS = new SearchResultSet(100, 100, 100, ids);
+        List<StoredDocument> documents = new ArrayList<>();
+        for (String id : ids) {
+            documents.add(new StoredDocument(id));
+        }
+
+        RESULTS = new SearchResultSet(100, 100, 100,
+                documents);
         DEFAULT_PARAMS = new HashMap<>();
         //These values follow RRE.  Take care and make sure that they meet
         //your use case before you select these in practice.
@@ -58,7 +66,7 @@ public class TestExpectedReciprocalRank {
         ExpectedReciprocalRank err = new ExpectedReciprocalRank(10, DEFAULT_PARAMS);
         Judgments judgments = newJudgments();
         for (int i = 0; i < 10; i++) {
-            judgments.addJudgment(RESULTS.get(i), 3);
+            judgments.addJudgment(RESULTS.getId(i), 3);
         }
         assertEquals(0.935, err.score(judgments, RESULTS), 0.01);
     }
@@ -69,7 +77,7 @@ public class TestExpectedReciprocalRank {
         ExpectedReciprocalRank err = new ExpectedReciprocalRank(10, DEFAULT_PARAMS);
         Judgments judgments = newJudgments();
         for (int i = 5; i < 15; i++) {
-            judgments.addJudgment(RESULTS.get(i), 3);
+            judgments.addJudgment(RESULTS.getId(i), 3);
         }
         assertEquals(0.591, err.score(judgments, RESULTS), 0.01);
     }
@@ -80,7 +88,7 @@ public class TestExpectedReciprocalRank {
         ExpectedReciprocalRank err = new ExpectedReciprocalRank(10, DEFAULT_PARAMS);
         Judgments judgments = newJudgments();
         for (int i = 9; i < 15; i++) {
-            judgments.addJudgment(RESULTS.get(i), 3);
+            judgments.addJudgment(RESULTS.getId(i), 3);
         }
         assertEquals(0.589, err.score(judgments, RESULTS), 0.01);
     }
@@ -93,7 +101,7 @@ public class TestExpectedReciprocalRank {
 
         Judgments judgments = newJudgments();
         for (int i = 0; i < 10; i++) {
-            judgments.addJudgment(RESULTS.get(i), 3);
+            judgments.addJudgment(RESULTS.getId(i), 3);
         }
         assertThrows(IllegalArgumentException.class,
                 () -> err.score(judgments, RESULTS));

@@ -38,6 +38,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.tallison.quaerite.core.FacetResult;
 import org.tallison.quaerite.core.SearchResultSet;
+import org.tallison.quaerite.core.StoredDocument;
 import org.tallison.quaerite.core.features.QueryOperator;
 import org.tallison.quaerite.core.features.WeightableField;
 import org.tallison.quaerite.core.queries.BooleanClause;
@@ -75,6 +76,11 @@ public class ESClient extends SearchClient {
 
 
     public ESClient(String url) {
+        this(url, null, null);
+    }
+
+    public ESClient(String url, String user, String password) {
+        super(user, password);
         String tmp = url;
         if (!url.endsWith("/")) {
             tmp = tmp + "/";
@@ -100,28 +106,56 @@ public class ESClient extends SearchClient {
         //System.out.println(jsonQuery);
         JsonResponse json = postJson(url + "_search", jsonQuery);
         if (json.getStatus() != 200) {
-            throw new SearchClientException(json.getMsg());
+            throw new SearchClientException(json.getMsg() + "\nfor " + jsonQuery);
         }
         JsonElement root = json.getJson();
-        return scrapeIds(root, start);
+        return getResultSet(root, start);
     }
 
-    private SearchResultSet scrapeIds(JsonElement root, long start)
+    public String startScroll(QueryRequest query, int size, int minutesAlive)
+            throws SearchClientException, IOException {
+        Map<String, Object> queryMap = getQueryMap(query, Collections.EMPTY_LIST);
+        if (query.getSortField() != null) {
+            Map<String, String> sort = new HashMap<>();
+            sort.put(query.getSortField(), query.getSortOrder().name().toLowerCase(Locale.US));
+            queryMap.put("sort", Collections.singletonList(sort));
+        }
+        queryMap.put("size", size);
+        String jsonQuery = GSON.toJson(queryMap);
+        //System.out.println(jsonQuery);
+        JsonResponse json = postJson(url +
+                "_search?scroll=" + minutesAlive + "m", jsonQuery);
+        if (json.getStatus() != 200) {
+            throw new SearchClientException(json.getMsg() + "\nfor " + jsonQuery);
+        }
+        JsonElement root = json.getJson();
+        return root.getAsJsonObject().get("_scroll_id").getAsString();
+    }
+
+    public SearchResultSet scrollNext(String scrollId, int minutesAlive)
+            throws IOException, SearchClientException {
+        Map<String, Object> request = new HashMap<>();
+        long start = System.currentTimeMillis();
+        request.put("scroll", minutesAlive + "m");
+        request.put("scroll_id", scrollId);
+        String jsonQuery = GSON.toJson(request);
+        JsonResponse json = postJson(url + "_search/scroll", jsonQuery);
+        if (json.getStatus() != 200) {
+            throw new SearchClientException(json.getMsg() + "\nfor " + jsonQuery);
+        }
+        JsonElement root = json.getJson();
+        return getResultSet(root, start);
+    }
+
+    private SearchResultSet getResultSet(JsonElement root, long start)
             throws IOException, SearchClientException {
         long queryTime = JsonUtil.getPrimitive(root, "took", -1l);
         JsonObject hits = (JsonObject) ((JsonObject) root).get("hits");
         long totalHits = getTotalHits(hits);
         JsonArray hitArray = (JsonArray) hits.get("hits");
-        List<String> ids = new ArrayList<>();
-        for (JsonElement el : hitArray) {
-            JsonObject hit = (JsonObject) el;
-            String id = JsonUtil.getPrimitive(hit, getDefaultIdField(), "");
-            if (!StringUtils.isBlank(id)) {
-                ids.add(id);
-            }
-        }
+        List<StoredDocument> documents = jsonArrayToDocs(hitArray, Collections.EMPTY_SET);
         long elapsed = System.currentTimeMillis() - start;
-        return new SearchResultSet(totalHits, queryTime, elapsed, ids);
+        return new SearchResultSet(totalHits, queryTime, elapsed, documents);
 
     }
 
@@ -137,6 +171,11 @@ public class ESClient extends SearchClient {
 
     private String buildJsonQuery(QueryRequest query, List<String> fieldsToRetrieve) {
         Map<String, Object> queryMap = getQueryMap(query, fieldsToRetrieve);
+        if (query.getSortField() != null) {
+            Map<String, String> sort = new HashMap<>();
+            sort.put(query.getSortField(), query.getSortOrder().name().toLowerCase(Locale.US));
+            queryMap.put("sort", Collections.singletonList(sort));
+        }
         String json = GSON.toJson(queryMap);
         return json;
     }
@@ -147,10 +186,10 @@ public class ESClient extends SearchClient {
         if (queryRequest.getFilterQueries().size() > 0) {
             fullQuery = new BooleanQuery();
             ((BooleanQuery) fullQuery).addClause(
-                    new BooleanClause(BooleanClause.OCCUR.SHOULD, q));
+                    new BooleanClause(BooleanClause.OCCUR.MUST, q));
             for (Query filterQuery : queryRequest.getFilterQueries()) {
                 ((BooleanQuery) fullQuery).addClause(
-                        new BooleanClause(BooleanClause.OCCUR.FILTER, filterQuery));
+                        new BooleanClause(getFilterOccur(), filterQuery));
             }
         }
 
@@ -166,6 +205,9 @@ public class ESClient extends SearchClient {
         return overallMap;
     }
 
+    BooleanClause.OCCUR getFilterOccur() {
+        return BooleanClause.OCCUR.FILTER;
+    }
     private Map<String, Object> buildQuery(Query query) {
         Map<String, Object> queryMap = new HashMap<>();
         if (query instanceof MultiMatchQuery) {
@@ -319,11 +361,10 @@ public class ESClient extends SearchClient {
         StringBuilder sb = new StringBuilder();
         for (StoredDocument sd : documents) {
             Map<String, Object> fields = sd.getFields();
-            Map<String, Object> tmp = new HashMap<>(fields);
-            String id = (String) tmp.remove(_ID);
+            String id = sd.getId();
             String indexJson = getBulkIndexJson(id);
             sb.append(indexJson).append("\n");
-            sb.append(GSON.toJson(tmp)).append("\n");
+            sb.append(GSON.toJson(fields)).append("\n");
         }
         JsonResponse response = postJson(url + "/_bulk", sb.toString());
         if (response.getStatus() != 200) {
@@ -358,11 +399,16 @@ public class ESClient extends SearchClient {
             throw new SearchClientException(response.getMsg());
         }
         JsonArray docs = (JsonArray) ((JsonObject) response.getJson()).get("docs");
+
+        return jsonArrayToDocs(docs, blackListFields);
+    }
+
+    private List<StoredDocument> jsonArrayToDocs(JsonArray docs, Set<String> blackListFields)
+            throws IOException, SearchClientException {
         List<StoredDocument> documents = new ArrayList<>();
         for (JsonElement el : docs) {
-            String id = JsonUtil.getPrimitive(el, _ID, "");
-            StoredDocument document = new StoredDocument();
-            document.addNonBlankField("id", id);
+            String id = JsonUtil.getPrimitive(el, getDefaultIdField(), "");
+            StoredDocument document = new StoredDocument(id);
             JsonObject src = (JsonObject) ((JsonObject) el).get("_source");
             for (String k : src.keySet()) {
                 if (!blackListFields.contains(k)) {
@@ -511,7 +557,7 @@ public class ESClient extends SearchClient {
                 response = postJson(url + "_search?scroll=5m", GSON.toJson(q));
                 JsonObject root = (JsonObject) response.getJson();
                 String scrollId = JsonUtil.getPrimitive(root, "_scroll_id", "");
-                SearchResultSet searchResultSet = scrapeIds(root, System.currentTimeMillis());
+                SearchResultSet searchResultSet = getResultSet(root, System.currentTimeMillis());
 
                 Map<String, String> nextScroll = new HashMap<>();
                 nextScroll.put("scroll", "5m");
@@ -525,7 +571,7 @@ public class ESClient extends SearchClient {
                     String u = esBase + "_search/scroll";
                     response = postJson(u, GSON.toJson(nextScroll));
                     root = (JsonObject) response.getJson();
-                    searchResultSet = scrapeIds(root, System.currentTimeMillis());
+                    searchResultSet = getResultSet(root, System.currentTimeMillis());
                 }
             } finally {
                 LOG.debug("id grabber adding poison");

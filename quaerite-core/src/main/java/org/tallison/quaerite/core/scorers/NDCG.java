@@ -21,6 +21,7 @@ import java.util.List;
 
 import org.tallison.quaerite.core.Judgments;
 import org.tallison.quaerite.core.SearchResultSet;
+import org.tallison.quaerite.core.StoredDocument;
 
 
 public class NDCG extends DiscountedCumulativeGain2002 {
@@ -47,9 +48,10 @@ public class NDCG extends DiscountedCumulativeGain2002 {
 
     private double calculateIdeal(Judgments judgments, int size, long totalHits,
                                   long queryTime, long elapsedTime) {
-        List<String> bestResults = new ArrayList<>();
+        List<StoredDocument> bestResults = new ArrayList<>();
         for (String id : judgments.getSortedJudgments().keySet()) {
-            bestResults.add(id);
+            StoredDocument sd = new StoredDocument(id);
+            bestResults.add(sd);
             if (bestResults.size() >= size) {
                 break;
             }

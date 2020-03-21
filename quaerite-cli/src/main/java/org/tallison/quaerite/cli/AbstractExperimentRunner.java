@@ -329,7 +329,7 @@ public abstract class AbstractExperimentRunner extends AbstractCLI {
         }
         Set<String> localValid = new HashSet<>();
         for (int i = 0; i < searchResultSet.size(); i++) {
-            String id = searchResultSet.get(i);
+            String id = searchResultSet.getId(i);
             if (localValid.contains(id)) {
                 LOG.warn("Found non-unique key: " + id);
             }

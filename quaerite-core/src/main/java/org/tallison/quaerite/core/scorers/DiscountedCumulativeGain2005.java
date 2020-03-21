@@ -16,10 +16,11 @@
  */
 package org.tallison.quaerite.core.scorers;
 
+import java.util.List;
+
 import org.apache.commons.math3.util.FastMath;
 import org.tallison.quaerite.core.Judgments;
 import org.tallison.quaerite.core.SearchResultSet;
-
 
 /**
  * Chris Burges, Tal Shaked, Erin Renshaw, Ari Lazier,
@@ -40,8 +41,9 @@ public class DiscountedCumulativeGain2005 extends DiscountedCumulativeGain2002 {
     protected double _score(Judgments judgments, SearchResultSet searchResultSet) {
         int rank = 1;
         double sum = 0;
-        for (int i = 0; i < getAtN() && i < searchResultSet.size(); i++) {
-            String id = searchResultSet.get(i);
+        List<String> ids = searchResultSet.getIds();
+        for (int i = 0; i < getAtN() && i < ids.size(); i++) {
+            String id = ids.get(i);
             if (judgments.containsJudgment(id)) {
                 double rel = judgments.getJudgment(id);
                 sum += (FastMath.pow(2,rel) - 1) /

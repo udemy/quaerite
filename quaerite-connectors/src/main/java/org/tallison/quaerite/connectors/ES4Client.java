@@ -16,30 +16,21 @@
  */
 package org.tallison.quaerite.connectors;
 
-import java.util.List;
-import java.util.Map;
+import org.tallison.quaerite.core.queries.BooleanClause;
 
-import com.google.gson.JsonObject;
-import org.tallison.quaerite.core.util.JsonUtil;
+//TODO: figure out when FILTER became available!
+public class ES4Client extends ES6Client {
 
-public class ES6Client extends ESClient {
-
-    public ES6Client(String url) {
+    public ES4Client(String url) {
         super(url);
     }
 
-    public ES6Client(String url, String user, String password) {
+    public ES4Client(String url, String user, String password) {
         super(url, user, password);
     }
 
-    protected long getTotalHits(JsonObject hits) {
-        return JsonUtil.getPrimitive(hits, "total", -1l);
-    }
-
     @Override
-    protected Map<String, Object> getQueryMap(QueryRequest queryRequest, List<String> fieldsToRetrieve) {
-        Map<String, Object> map = super.getQueryMap(queryRequest, fieldsToRetrieve);
-        map.remove("track_total_hits");
-        return map;
+    BooleanClause.OCCUR getFilterOccur() {
+        return BooleanClause.OCCUR.MUST;
     }
 }

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.tallison.quaerite.connectors;
+package org.tallison.quaerite.core;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -25,6 +25,14 @@ import org.apache.commons.lang3.StringUtils;
 
 public class StoredDocument {
     Map<String, Object> fields = new LinkedHashMap<>();
+    private final String id;
+    public StoredDocument(String id) {
+        this.id = id;
+    }
+
+    public String getId() {
+        return id;
+    }
 
     public void addNonBlankField(String field, List<String> values) {
         if (values == null) {

@@ -36,17 +36,23 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 import org.tallison.quaerite.core.ExperimentConfig;
 import org.tallison.quaerite.core.FacetResult;
 import org.tallison.quaerite.core.SearchResultSet;
+import org.tallison.quaerite.core.StoredDocument;
 import org.tallison.quaerite.core.queries.Query;
 import org.tallison.quaerite.core.stats.TokenDF;
 
@@ -63,6 +69,19 @@ public abstract class SearchClient implements Closeable {
 
     public SearchClient() {
         httpClient = HttpClients.createDefault();
+    }
+    public SearchClient(String user, String password) {
+        if (user != null && password != null) {
+            CredentialsProvider provider = new BasicCredentialsProvider();
+            UsernamePasswordCredentials credentials
+                    = new UsernamePasswordCredentials(user, password);
+            provider.setCredentials(AuthScope.ANY, credentials);
+            httpClient = HttpClientBuilder.create()
+                    .setDefaultCredentialsProvider(provider)
+                    .build();
+        } else {
+            httpClient = HttpClients.createDefault();
+        }
     }
 
     protected byte[] get(String url) throws SearchClientException {

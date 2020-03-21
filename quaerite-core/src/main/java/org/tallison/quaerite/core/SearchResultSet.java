@@ -16,7 +16,7 @@
  */
 package org.tallison.quaerite.core;
 
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.List;
 
 public class SearchResultSet {
@@ -24,13 +24,19 @@ public class SearchResultSet {
     private final long totalHits;
     private final long queryTime;
     private final long elapsedTime;
-    private final List<String> ids;
+    private final List<StoredDocument> docs;
+    private final List<String> ids = new ArrayList<>();
 
-    public SearchResultSet(long totalHits, long queryTime, long elapsedTime, List<String> ids) {
+
+    public SearchResultSet(long totalHits, long queryTime, long elapsedTime,
+                           List<StoredDocument> docs) {
         this.totalHits = totalHits;
         this.queryTime = queryTime;
         this.elapsedTime = elapsedTime;
-        this.ids = ids;
+        this.docs = docs;
+        for (StoredDocument sd : docs) {
+            ids.add(sd.getId());
+        }
     }
 
     public long getTotalHits() {
@@ -45,12 +51,13 @@ public class SearchResultSet {
         return queryTime;
     }
     public int size() {
-        return ids.size();
+        return docs.size();
     }
 
-    public String get(int i) {
-        return ids.get(i);
+    public StoredDocument get(int i) {
+        return docs.get(i);
     }
+
 
     @Override
     public String toString() {
@@ -58,11 +65,15 @@ public class SearchResultSet {
                 "totalHits=" + totalHits +
                 ", queryTime=" + queryTime +
                 ", elapsedTime=" + elapsedTime +
-                ", ids=" + ids +
+                ", docs=" + docs +
                 '}';
     }
 
-    public Collection<? extends String> getIds() {
+    public List<String> getIds() {
         return ids;
+    }
+
+    public String getId(int i) {
+        return ids.get(i);
     }
 }

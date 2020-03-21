@@ -44,7 +44,7 @@ import org.apache.log4j.Logger;
 import org.tallison.quaerite.connectors.SearchClient;
 import org.tallison.quaerite.connectors.SearchClientException;
 import org.tallison.quaerite.connectors.SearchClientFactory;
-import org.tallison.quaerite.connectors.StoredDocument;
+import org.tallison.quaerite.core.StoredDocument;
 import org.tallison.quaerite.core.queries.LuceneQuery;
 import org.tallison.quaerite.core.queries.Query;
 

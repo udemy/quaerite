@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.tallison.quaerite.core.FacetResult;
 import org.tallison.quaerite.core.QueryStrings;
 import org.tallison.quaerite.core.SearchResultSet;
+import org.tallison.quaerite.core.StoredDocument;
 import org.tallison.quaerite.core.features.QF;
 import org.tallison.quaerite.core.features.QueryOperator;
 import org.tallison.quaerite.core.features.WeightableField;

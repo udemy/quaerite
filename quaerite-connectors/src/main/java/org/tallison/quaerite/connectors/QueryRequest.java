@@ -26,7 +26,7 @@ import org.tallison.quaerite.core.queries.Query;
 
 public class QueryRequest {
 
-    enum SORT_ORDER {
+    public enum SORT_ORDER {
         ASC,
         DESC
     }

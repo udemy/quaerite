@@ -16,6 +16,8 @@
  */
 package org.tallison.quaerite.core.scorers;
 
+import java.util.List;
+
 import org.tallison.quaerite.core.Judgments;
 import org.tallison.quaerite.core.SearchResultSet;
 
@@ -43,8 +45,10 @@ public class HighestRank extends AbstractJudgmentScorer {
     }
 
     protected int _score(Judgments judgments, SearchResultSet searchResultSet) {
-        for (int i = 0; i < getAtN() && i < searchResultSet.size(); i++) {
-            if (judgments.containsJudgment(searchResultSet.get(i))) {
+        List<String> ids = searchResultSet.getIds();
+
+        for (int i = 0; i < getAtN() && i < ids.size(); i++) {
+            if (judgments.containsJudgment(ids.get(i))) {
                 return i + 1;
             }
         }

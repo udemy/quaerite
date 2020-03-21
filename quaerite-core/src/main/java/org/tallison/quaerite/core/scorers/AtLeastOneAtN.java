@@ -16,6 +16,8 @@
  */
 package org.tallison.quaerite.core.scorers;
 
+import java.util.List;
+
 import org.tallison.quaerite.core.Judgments;
 import org.tallison.quaerite.core.SearchResultSet;
 
@@ -31,8 +33,9 @@ public class AtLeastOneAtN extends SummingScoreAggregator implements JudgmentSco
     @Override
     public double score(Judgments judgments, SearchResultSet searchResultSet) {
         int val = 0;
-        for (int i = 0; i < getAtN() && i < searchResultSet.size(); i++) {
-            if (judgments.containsJudgment(searchResultSet.get(i))) {
+        List<String> ids = searchResultSet.getIds();
+        for (int i = 0; i < getAtN() && i < ids.size(); i++) {
+            if (judgments.containsJudgment(ids.get(i))) {
                 val = 1;
                 break;
             }

@@ -26,6 +26,7 @@ import org.tallison.quaerite.core.Judgments;
 import org.tallison.quaerite.core.QueryInfo;
 import org.tallison.quaerite.core.QueryStrings;
 import org.tallison.quaerite.core.SearchResultSet;
+import org.tallison.quaerite.core.StoredDocument;
 
 
 public class TestNDCG {
@@ -42,11 +43,12 @@ public class TestNDCG {
         JUDGMENTS.addJudgment("6", 2);
         JUDGMENTS.addJudgment("7", 3);
         JUDGMENTS.addJudgment("8", 2);
-        List<String> ids = new ArrayList<>();
+        List<StoredDocument> ids = new ArrayList<>();
         for (int i = 1; i <= 6; i++) {
-            ids.add(Integer.toString(i));
+            ids.add(new StoredDocument(Integer.toString(i)));
         }
-        RESULT_SET = new SearchResultSet(1000, 10, 100, ids);
+        RESULT_SET =
+                new SearchResultSet(1000, 10, 100, ids);
     }
 
 

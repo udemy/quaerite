@@ -26,6 +26,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import org.apache.log4j.Logger;
+import org.tallison.quaerite.core.StoredDocument;
 import org.tallison.quaerite.core.queries.LuceneQuery;
 import org.tallison.quaerite.core.queries.TermsQuery;
 
@@ -89,7 +90,8 @@ public class Solr4Client extends SolrClient {
         return documents;
     }
 
-    private List<StoredDocument> _getDocs(String requestUrl, Set<String> blackListFields) {
+    private List<StoredDocument> _getDocs(String requestUrl, Set<String> blackListFields)
+            throws IOException, SearchClientException {
         List<StoredDocument> documents = new ArrayList<>();
         JsonResponse fullResponse = null;
         try {
@@ -106,11 +108,14 @@ public class Solr4Client extends SolrClient {
         long totalHits = response.get("numFound").getAsLong();
         if (response.has("docs")) {
             JsonArray docs = (JsonArray) response.get("docs");
+            String idKey = getDefaultIdField();
             for (JsonElement docElement : docs) {
-                StoredDocument document = new StoredDocument();
                 JsonObject docObj = (JsonObject) docElement;
+                String id = docObj.get(idKey).getAsString();
+                StoredDocument document = new StoredDocument(id);
+
                 for (String key : docObj.keySet()) {
-                    if (!blackListFields.contains(key)) {
+                    if (!blackListFields.contains(key) && !idKey.equals(id)) {
                         JsonElement value = docObj.get(key);
                         if (value.isJsonArray()) {
                             for (int j = 0; j < ((JsonArray) value).size(); j++) {
@@ -123,7 +128,7 @@ public class Solr4Client extends SolrClient {
                     }
                 }
                 LOG.trace("getting doc from solr: " +
-                        document.getFields().get("id"));
+                        document.getId());
                 documents.add(document);
             }
         }

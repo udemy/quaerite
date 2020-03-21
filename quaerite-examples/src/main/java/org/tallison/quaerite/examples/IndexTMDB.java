@@ -35,7 +35,7 @@ import com.google.gson.stream.JsonToken;
 import org.apache.commons.lang3.StringUtils;
 import org.tallison.quaerite.connectors.SearchClient;
 import org.tallison.quaerite.connectors.SearchClientFactory;
-import org.tallison.quaerite.connectors.StoredDocument;
+import org.tallison.quaerite.core.StoredDocument;
 
 public class IndexTMDB {
 
@@ -59,7 +59,7 @@ public class IndexTMDB {
                 movies.add(movie);
                 cnt++;
                 if (movies.size() >= 1000) {
-                    searchClient.addDocuments(buildDocuments(idField, movies));
+                    searchClient.addDocuments(buildDocuments(movies));
                     movies.clear();
                     System.out.println("indexed " + cnt + " in " +
                             (System.currentTimeMillis() - start) + " ms");
@@ -67,22 +67,21 @@ public class IndexTMDB {
             }
             jsonReader.endObject();
         }
-        searchClient.addDocuments(buildDocuments(idField, movies));
+        searchClient.addDocuments(buildDocuments(movies));
         System.out.println("finished indexing " + cnt + " in " +
                 (System.currentTimeMillis() - start) + " ms");
     }
 
-    private static List<StoredDocument> buildDocuments(String idField, List<Movie> movies) {
+    private static List<StoredDocument> buildDocuments(List<Movie> movies) {
         List<StoredDocument> docs = new ArrayList<>();
         for (Movie movie : movies) {
-            docs.add(buildDocument(idField, movie));
+            docs.add(buildDocument(movie));
         }
         return docs;
     }
 
-    private static StoredDocument buildDocument(String idField, Movie movie) {
-        StoredDocument storedDocument = new StoredDocument();
-        storedDocument.addNonBlankField(idField, movie.id);
+    private static StoredDocument buildDocument(Movie movie) {
+        StoredDocument storedDocument = new StoredDocument(movie.id);
         storedDocument.addNonBlankField("original_language", movie.originalLanguage);
         storedDocument.addNonBlankField("original_title", movie.originalTitle);
         storedDocument.addNonBlankField("title", movie.title);
