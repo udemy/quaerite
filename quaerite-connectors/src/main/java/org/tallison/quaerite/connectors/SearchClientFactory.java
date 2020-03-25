@@ -71,7 +71,7 @@ public class SearchClientFactory {
             JsonObject version = root.getAsJsonObject("version");
             String number = version.get("number").getAsString();
             String major = number.substring(0,1);
-            if (major.equals("6")) {
+            if (major.equals("6") || major.equals("5")) {
                 return new ES6Client(url);
             } else if (major.equals("7")) {
                 return new ESClient(url);

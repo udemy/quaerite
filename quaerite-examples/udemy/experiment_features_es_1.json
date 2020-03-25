@@ -1,0 +1,64 @@
+{
+  "gaConfig": {
+    "numThreads": 6,
+    "population": 30,
+    "generations": 50,
+    "crossoverProbability": 0.6,
+    "mutationProbability": 0.3,
+    "mutationAmplitude": 0.1,
+    "reproductionProbability": 0.1,
+    "nFolds": 3,
+    "idField": "id_i"
+  },
+  "scorers": [
+    {
+      "class": "NDCG",
+      "atN": 30,
+      "params": {
+        "useForTrain": true,
+        "useForTest": true,
+        "exportPMatrix": true
+      }
+    }
+  ],
+  "featureFactories": {
+    "urls": [
+      "http://localhost:29200/course"
+    ],
+    "query": {
+      "multi_match": {
+        "type": [
+          "best_fields",
+          "cross_fields",
+          "most_fields",
+          "phrase"
+        ],
+        "qf": {
+          "fields": [
+            "headline_t",
+            "instructorName_t",
+	        "title_t"
+          ],
+          "defaultWeights": [
+            "0.0",
+            "1.0",
+            "7.0"
+          ],
+          "minSetSize": 2,
+          "maxSetSize": 3
+        },
+        "tie": [
+          0.0,
+          0.1,
+          0.2
+        ],
+        "fuzziness": [
+          "0",
+          "1",
+          "2",
+          "AUTO"
+        ]
+      }
+    }
+  }
+}
